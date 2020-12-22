@@ -1,0 +1,93 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  8
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      dynamicMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dynamicFvMesh   dynamicMotionSolverFvMesh;
+
+motionSolverLibs    ("libsixDoFRigidBodyMotion.so");
+
+motionSolver        sixDoFRigidBodyMotion;
+
+sixDoFRigidBodyMotionCoeffs
+{
+    report          on;
+    
+    patches         (CYLINDER);
+    innerDistance   0.05;
+    outerDistance   0.4;
+
+    // Gravity acceleration
+    g               (0 0 -9.81);
+    
+    // Density of fluid
+    rho             rhoInf;
+    rhoInf          100;
+
+    // Cylinder mass
+    mass            0.8686;
+
+    // Cylinder centre of mass
+    centreOfMass (0.0 0.0 0.084);
+    
+    // Cylinder moment of inertia about the centre of mass
+    momentOfInertia (1.0 1.0 1.0);
+    
+    orientation
+    (
+    1 0 0
+    0 1 0
+    0 0 1
+    );
+
+    accelerationRelaxation 0.4;
+    // accelerationDamping 0;
+
+    solver
+    {
+        type Newmark;
+    }
+
+    constraints
+    {
+        fixedLine
+        {
+            sixDoFRigidBodyMotionConstraint line;
+            //centreOfRotation (0.5 0.45 0.1);
+            direction (0 1 0);
+        }
+        
+        fixedOrientation
+        {
+            sixDoFRigidBodyMotionConstraint orientation;
+        }
+    }
+
+    restraints
+    {
+        verticalSpring
+        {
+            sixDoFRigidBodyMotionRestraint linearSpring;
+
+            anchor          (0.0 0.06 0.12);
+            refAttachmentPt (0.0 0.06 0.12);
+            stiffness       4.1342;    // Vr = 6, changeable
+            damping         0.0;
+            restLength      0;
+        }
+    }
+}
+
+
+// ************************************************************************* //

@@ -1,0 +1,111 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  8
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      dynamicMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dynamicFvMesh   dynamicMotionSolverFvMesh;
+
+motionSolverLibs    ("libsixDoFRigidBodyMotion.so");
+
+motionSolver        sixDoFRigidBodyMotion;
+
+D               0.12;
+Db              #calc "2*$D";
+L               #calc "2*$D";
+Lb              #calc "0.2*$L";
+Lc              #calc "$L-$Lb";
+
+sixDoFRigidBodyMotionCoeffs
+{
+    report          on;
+    
+    patches         (CYLINDER);
+    innerDistance   0.05;
+    outerDistance   0.30;
+
+    // Cylinder dimensions
+    /*D               0.12;
+    Db              #calc "2*$D";
+    L               #calc "2*$D";
+    Lb              #calc "0.2*$L";
+    Lc              #calc "$L-$Lb";
+    */
+    // Gravity acceleration
+    g               (0 0 -9.81);
+    
+    // Density of fluid
+    rho             rhoInf;
+    rhoInf          1000;
+
+    // Displaced fluid mass
+    pi              3.1415926;
+    massCDis        #calc "$rhoInf*$pi*($D*$D*$Lc)/4.0";
+    massBDis        #calc "$rhoInf*$pi*($Db*$Db*$Lb)/4.0";
+    massDis         #calc "$massCDis+$massBDis";
+    
+    // Mass ratio
+    massRatio       2;    //massRatio = mass/massDis
+
+    // Cylinder mass
+    mass            #calc "$massRatio*$massDis";
+
+    // Cylinder centre of mass
+    zz              #calc "($massCDis*($Lb+$Lc/2.0)+$massBDis*($Lb/2.0))/($massCDis+$massBDis)"
+    centreOfMass (0.0 0.0 $zz);
+    
+    // Cylinder moment of inertia about the centre of mass
+    momentOfInertia (1.0 1.0 1.0);
+    
+    orientation
+    (
+    1 0 0
+    0 1 0
+    0 0 1
+    );
+
+    accelerationRelaxation 0.7;
+    // accelerationDamping 0;
+
+    solver
+    {
+        type Newmark;
+    }
+
+    constraints
+    {
+        fixedLine
+        {
+            sixDoFRigidBodyMotionConstraint line;
+            //centreOfRotation (0.5 0.45 0.1);
+            direction (0 1 0);
+        }
+    }
+    
+    restraints
+    {
+        verticalSpring
+        {
+            sixDoFRigidBodyMotionRestraint linearSpring;
+
+            anchor          (0.0 0.06 0.12);
+            refAttachmentPt (0.0 0.06 0.12);
+            stiffness       0.0105;    // Vr = 6, changeable
+            damping         0.0;
+            restLength      0;
+        }
+    }
+}
+
+
+// ************************************************************************* //
